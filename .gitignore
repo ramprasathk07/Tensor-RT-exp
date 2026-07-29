@@ -1,0 +1,34 @@
+# model weights and downloads
+models/
+
+# python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# crash dumps / OS garbage
+*.stackdump
+Thumbs.db
+.DS_Store
+
+# engines / export artifacts (large, machine-specific)
+*.onnx
+*.plan
+*.engine
+
+# profiling output
+*.nsys-rep
+*.ncu-rep
+*.sqlite
+
+# editor
+.vscode/
+.idea/
+
+# local claude settings
+.claude/settings.local.json
+
+# baseline tensor dumps (large; keep the text reports, not tensors)
+docs/baselines/*.pt
