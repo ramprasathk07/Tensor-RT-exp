@@ -31,4 +31,7 @@ Thumbs.db
 .claude/settings.local.json
 
 # baseline tensor dumps (large; keep the text reports, not tensors)
-docs/baselines/*.pt
+docs/baselines/**/*.pt
+
+# exported graphs and engines
+artifacts/

@@ -1,0 +1,10 @@
+captured_utc      2026-08-01T13:36:41+00:00
+platform          Windows-10-10.0.19045-SP0
+python            3.12.10
+torch             2.12.0+cu126
+torch_cuda        12.6
+transformers      5.10.2
+gpu               NVIDIA GeForce RTX 3060
+compute_cap       8.6
+vram_gb           12.9
+nvidia_driver     610.62

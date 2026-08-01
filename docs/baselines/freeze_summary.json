@@ -1,0 +1,64 @@
+[
+  {
+    "case": "text_only",
+    "prompt_tokens": 13,
+    "patches": 0,
+    "grid": [],
+    "vision_tokens": 0,
+    "max_position": 12,
+    "logits_shape": [
+      1,
+      13,
+      151936
+    ],
+    "last_argmax": 19641,
+    "file_mb": 7.9
+  },
+  {
+    "case": "single_image",
+    "prompt_tokens": 212,
+    "patches": 784,
+    "grid": [
+      [
+        1,
+        28,
+        28
+      ]
+    ],
+    "vision_tokens": 196,
+    "max_position": 29,
+    "logits_shape": [
+      1,
+      212,
+      151936
+    ],
+    "last_argmax": 28715,
+    "file_mb": 140.1
+  },
+  {
+    "case": "two_images",
+    "prompt_tokens": 286,
+    "patches": 1064,
+    "grid": [
+      [
+        1,
+        28,
+        28
+      ],
+      [
+        1,
+        14,
+        20
+      ]
+    ],
+    "vision_tokens": 266,
+    "max_position": 43,
+    "logits_shape": [
+      1,
+      286,
+      151936
+    ],
+    "last_argmax": 785,
+    "file_mb": 189.1
+  }
+]
