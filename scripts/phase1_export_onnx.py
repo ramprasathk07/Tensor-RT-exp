@@ -140,6 +140,10 @@ def export_onnx(model, processor, precision: str) -> None:
     wrapper = ExportableVisionTower(tower).eval()
     case = make_case(processor, [vision_shapes()[1][1]], "cpu", dtype)
 
+    # The TorchScript exporter cannot emit bfloat16 tensors ("ScalarType
+    # ComplexDouble is an unexpected tensor scalar type"), so bf16 goes through
+    # the newer torch.export-based path.
+    use_dynamo = dtype is torch.bfloat16
     torch.onnx.export(
         wrapper,
         graph_args(case),
@@ -149,7 +153,8 @@ def export_onnx(model, processor, precision: str) -> None:
         dynamic_axes=dynamic_axes(),
         opset_version=17,
         do_constant_folding=True,
-        dynamo=False,
+        dynamo=use_dynamo,
+        **({"external_data": False} if use_dynamo else {}),
     )
     print(f"wrote {out_path} ({out_path.stat().st_size / 1e6:.1f} MB)")
 

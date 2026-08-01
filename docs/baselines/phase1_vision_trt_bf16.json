@@ -1,0 +1,54 @@
+{
+  "precision": "bf16",
+  "tensorrt": "11.2.1.2",
+  "profile": [
+    256,
+    1024,
+    6144
+  ],
+  "trt_vs_torch_same_precision_worst_rel": 0.4189189076423645,
+  "torch_low_vs_fp32_worst_rel": 0.3001161515712738,
+  "parity": "FAIL",
+  "benchmark": [
+    {
+      "case": "small_256px",
+      "patches": 256,
+      "torch_fp16_ms": 18.178,
+      "compile_ms": NaN,
+      "trt_ms": 12.666,
+      "speedup_vs_best_torch": 1.44
+    },
+    {
+      "case": "medium_448px",
+      "patches": 784,
+      "torch_fp16_ms": 40.347,
+      "compile_ms": NaN,
+      "trt_ms": 31.416,
+      "speedup_vs_best_torch": 1.28
+    },
+    {
+      "case": "wide_640x360",
+      "patches": 880,
+      "torch_fp16_ms": 41.212,
+      "compile_ms": NaN,
+      "trt_ms": 32.923,
+      "speedup_vs_best_torch": 1.25
+    },
+    {
+      "case": "large_896px",
+      "patches": 3136,
+      "torch_fp16_ms": 181.765,
+      "compile_ms": NaN,
+      "trt_ms": 143.745,
+      "speedup_vs_best_torch": 1.26
+    },
+    {
+      "case": "xlarge_1280x720",
+      "patches": 3520,
+      "torch_fp16_ms": 208.553,
+      "compile_ms": NaN,
+      "trt_ms": 169.815,
+      "speedup_vs_best_torch": 1.23
+    }
+  ]
+}

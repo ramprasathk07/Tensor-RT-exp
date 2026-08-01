@@ -11,6 +11,7 @@ torch.compile at several patch counts.
 
 from __future__ import annotations
 
+import copy
 import gc
 import json
 import sys
@@ -126,11 +127,10 @@ class TRTVisionRunner:
         self.stream = torch.cuda.Stream()
 
     def __call__(self, inputs: dict[str, torch.Tensor]) -> list[torch.Tensor]:
-        num_patches = inputs["pixel_values"].shape[0]
         for name in input_names():
-            self.context.set_input_shape(name, tuple(inputs[name].shape))
-        if not self.context.all_shape_inputs_specified:
-            raise RuntimeError("shape inputs unspecified")
+            if not self.context.set_input_shape(name, tuple(inputs[name].shape)):
+                raise RuntimeError(f"shape rejected for {name}: {tuple(inputs[name].shape)} "
+                                   f"(outside optimization profile?)")
 
         # Cast to whatever the engine declares, so callers can pass fp32 and let
         # an fp16 engine consume it without a separate preprocessing path.
@@ -191,40 +191,66 @@ def main() -> None:
     processor = Qwen3VLImageProcessor.from_pretrained(MODEL_DIR)
     runner = TRTVisionRunner(plan)
 
-    print(f"=== parity: TRT {precision} vs torch fp32 ===")
+    # Three-way comparison. Comparing TRT against fp32 alone cannot tell whether
+    # drift comes from TensorRT or simply from running in reduced precision, so
+    # torch at the same precision is measured as the control.
+    print(f"=== parity: fp32 reference vs torch {precision} vs TRT {precision} ===")
+    torch_dtype = {"fp16": torch.float16, "bf16": torch.bfloat16, "fp32": torch.float32}[precision]
     model = load_qwen3vl(MODEL_DIR, dtype=torch.float32, device="cuda")
-    wrapper = ExportableVisionTower(model.model.visual).eval()
+    wrapper_fp32 = ExportableVisionTower(model.model.visual).eval()
+    tower_low = copy.deepcopy(model.model.visual).to(torch_dtype).eval()
+    wrapper_low = ExportableVisionTower(tower_low).eval()
 
     rows = []
-    worst = 0.0
+    worst_trt_vs_torch = 0.0
+    worst_torch_vs_fp32 = 0.0
+
+    def rel_err(a: torch.Tensor, b: torch.Tensor) -> tuple[float, float]:
+        a, b = a.float(), b.float()
+        rel = float((a - b).abs().max() / a.abs().max().clamp(min=1e-6))
+        cos = float(torch.nn.functional.cosine_similarity(a.flatten(), b.flatten(), dim=0))
+        return rel, cos
+
     for name, image in vision_shapes():
         inputs = make_inputs(processor, [image], torch.float32)
-        args = tuple(inputs[k] for k in input_names())
+        args32 = tuple(inputs[k] for k in input_names())
+        args_low = tuple(
+            inputs[k].to(torch_dtype) if inputs[k].is_floating_point() else inputs[k]
+            for k in input_names()
+        )
         with torch.inference_mode():
-            ref = wrapper(*args)
+            ref = wrapper_fp32(*args32)
+            low = wrapper_low(*args_low)
         trt_out = runner(inputs)
 
         print(f"{name}  patches={inputs['pixel_values'].shape[0]}")
         for i, out_name in enumerate(output_names()):
-            a, b = ref[i].float(), trt_out[i].float()
-            diff = (a - b).abs()
-            scale = a.abs().max().clamp(min=1e-6)
-            rel = float(diff.max() / scale)
-            cos = torch.nn.functional.cosine_similarity(a.flatten(), b.flatten(), dim=0)
-            worst = max(worst, rel)
-            print(f"  {out_name:<14} max_abs={diff.max():.3e}  rel={rel:.3e}  cos={cos:.6f}")
+            r_torch, c_torch = rel_err(ref[i], low[i])
+            r_trt, c_trt = rel_err(ref[i], trt_out[i])
+            r_pair, c_pair = rel_err(low[i], trt_out[i])
+            worst_torch_vs_fp32 = max(worst_torch_vs_fp32, r_torch)
+            worst_trt_vs_torch = max(worst_trt_vs_torch, r_pair)
+            print(f"  {out_name:<13} torch{precision}/fp32 rel={r_torch:.2e} cos={c_torch:.6f} | "
+                  f"TRT/fp32 rel={r_trt:.2e} cos={c_trt:.6f} | "
+                  f"TRT/torch{precision} rel={r_pair:.2e} cos={c_pair:.6f}")
 
-    tol = 3e-2 if precision == "fp16" else 6e-2
-    verdict = "PASS" if worst < tol else "FAIL"
-    print(f"parity {verdict}  (worst rel {worst:.3e}, tol {tol})\n")
+    # The real question is whether TensorRT agrees with torch at the SAME
+    # precision; drift they share is the cost of the precision, not a TRT bug.
+    tol = 3e-2
+    verdict = "PASS" if worst_trt_vs_torch < tol else "FAIL"
+    print(f"\nTRT vs torch@{precision}:  worst rel {worst_trt_vs_torch:.3e}  -> {verdict} (tol {tol})")
+    print(f"torch@{precision} vs fp32: worst rel {worst_torch_vs_fp32:.3e}  "
+          f"(cost of {precision} itself, not attributable to TensorRT)\n")
+    worst = worst_trt_vs_torch
 
     print("=== benchmark ===")
-    torch_fp16 = ExportableVisionTower(model.model.visual).eval().half()
+    torch_fp16 = wrapper_low
     compiled = torch.compile(torch_fp16, dynamic=True)
 
-    print(f"{'case':<18}{'patches':>8}{'torch fp16':>13}{'compile':>11}{'TRT':>11}{'speedup':>10}")
+    compile_failure_reported = False
+    print(f"{'case':<18}{'patches':>8}{'torch':>13}{'compile':>11}{'TRT':>11}{'speedup':>10}")
     for name, image in vision_shapes():
-        inputs_h = make_inputs(processor, [image], torch.float16)
+        inputs_h = make_inputs(processor, [image], torch_dtype)
         inputs_f = make_inputs(processor, [image], torch.float32)
         args_h = tuple(inputs_h[k] for k in input_names())
         n = inputs_h["pixel_values"].shape[0]
@@ -233,7 +259,11 @@ def main() -> None:
             t_eager = bench(lambda: torch_fp16(*args_h))
             try:
                 t_comp = bench(lambda: compiled(*args_h), iters=20, warmup=4)
-            except Exception:
+            except Exception as exc:
+                if not compile_failure_reported:
+                    print(f"  (torch.compile unavailable: {type(exc).__name__}: "
+                          f"{str(exc).splitlines()[0][:130]})")
+                    compile_failure_reported = True
                 t_comp = float("nan")
         t_trt = bench(lambda: runner(inputs_f))
 
@@ -246,13 +276,15 @@ def main() -> None:
 
     out = {"precision": precision, "tensorrt": trt.__version__,
            "profile": [MIN_PATCHES, OPT_PATCHES, MAX_PATCHES],
-           "parity_worst_rel": worst, "parity": verdict, "benchmark": rows}
+           "trt_vs_torch_same_precision_worst_rel": worst_trt_vs_torch,
+           "torch_low_vs_fp32_worst_rel": worst_torch_vs_fp32,
+           "parity": verdict, "benchmark": rows}
     (BASELINE_DIR / f"phase1_vision_trt_{precision}.json").write_text(
         json.dumps(out, indent=2) + "\n", encoding="utf-8"
     )
     print(f"\nwrote {BASELINE_DIR / f'phase1_vision_trt_{precision}.json'}")
 
-    del model, wrapper, torch_fp16, compiled
+    del model, wrapper_fp32, wrapper_low, tower_low, compiled
     gc.collect()
     torch.cuda.empty_cache()
 
