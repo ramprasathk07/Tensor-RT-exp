@@ -1,19 +1,20 @@
-"""Deterministic prompt fixtures shared by every parity and benchmark script.
+"""Deterministic prompt and image fixtures shared by every test and benchmark.
 
 Both the torch reference and every compiled engine are measured on exactly these
 inputs, so numbers stay comparable across phases. Images are generated from
 fixed arithmetic rather than files — no binary assets in the repo, and the
-inputs are reproducible on any machine.
+inputs are reproducible on any machine, including from a different runtime in
+WSL2.
 """
 
 from __future__ import annotations
 
-from pathlib import Path
-
 from PIL import Image
 
-MODEL_DIR = Path(__file__).resolve().parent.parent / "models" / "Qwen3-VL-2B-Instruct"
-BASELINE_DIR = Path(__file__).resolve().parent.parent / "docs" / "baselines"
+import paths  # noqa: F401  - repo-root import bootstrap
+
+MODEL_DIR = paths.MODEL_DIR
+BASELINE_DIR = paths.BASELINE_DIR
 
 
 def solid_red(size: tuple[int, int] = (448, 448)) -> Image.Image:

@@ -14,7 +14,7 @@ from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-MODEL_DIR = Path(__file__).resolve().parent.parent / "models" / "Qwen3-VL-2B-Instruct"
+from tests.fixtures import MODEL_DIR
 DTYPE = torch.float32  # float32 so tolerances reflect implementation, not bf16 rounding
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 

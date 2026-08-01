@@ -19,7 +19,7 @@ import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from _fixtures import BASELINE_DIR, MODEL_DIR, vision_shapes
+from tests.fixtures import MODEL_DIR, vision_shapes
 
 from qwen3vl import Qwen3VLImageProcessor, load_qwen3vl
 from qwen3vl.export_vision import (
@@ -32,15 +32,16 @@ from qwen3vl.export_vision import (
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 DTYPE = torch.float32
-ARTIFACT_DIR = Path(__file__).resolve().parent.parent / "artifacts"
+import paths
+
+ARTIFACT_DIR = paths.ARTIFACT_DIR
 
 # TensorRT 11 builds strongly-typed networks only: there is no FP16/BF16 builder
 # flag any more, so the graph itself must carry the precision we want to run.
 PRECISIONS = {"fp32": torch.float32, "fp16": torch.float16, "bf16": torch.bfloat16}
 
 
-def onnx_path(precision: str) -> Path:
-    return ARTIFACT_DIR / f"vision_tower_{precision}.onnx"
+onnx_path = paths.onnx_path
 
 
 def requested_precisions() -> list[str]:

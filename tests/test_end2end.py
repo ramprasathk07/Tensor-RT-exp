@@ -30,8 +30,9 @@ import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from _fixtures import BASELINE_DIR, MODEL_DIR, prompt_cases
-from phase1_build_engine import TRTVisionRunner, engine_path, requested_precision
+import paths
+from engine.runtime import TRTVisionRunner, requested_precision
+from tests.fixtures import BASELINE_DIR, MODEL_DIR, prompt_cases
 
 from qwen3vl import GenerationConfig, Qwen3VLProcessor, generate, load_qwen3vl
 from qwen3vl.export_vision import build_vision_inputs, input_names
@@ -84,8 +85,8 @@ def agreement(reference: dict, candidate: dict) -> tuple[int, int, list[str]]:
 
 
 def main() -> None:
-    precision = requested_precision()
-    plan = engine_path(precision)
+    precision = requested_precision(sys.argv)
+    plan = paths.engine_path(precision)
     if not plan.exists():
         raise SystemExit(f"missing {plan.name} — run phase1_build_engine.py --{precision}")
 

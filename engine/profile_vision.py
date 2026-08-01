@@ -18,8 +18,9 @@ import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from _fixtures import BASELINE_DIR, MODEL_DIR, vision_shapes
-from phase1_build_engine import TRTVisionRunner, engine_path, make_inputs, requested_precision
+import paths
+from engine.runtime import TRTVisionRunner, make_inputs, requested_precision
+from tests.fixtures import BASELINE_DIR, MODEL_DIR, vision_shapes
 
 from qwen3vl import Qwen3VLImageProcessor
 from qwen3vl.export_vision import input_names
@@ -57,8 +58,8 @@ def classify(layer_name: str) -> str:
 
 
 def main() -> None:
-    precision = requested_precision()
-    plan = engine_path(precision)
+    precision = requested_precision(sys.argv)
+    plan = paths.engine_path(precision)
     if not plan.exists():
         raise SystemExit(f"missing {plan.name} — run phase1_build_engine.py --{precision}")
 

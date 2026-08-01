@@ -20,7 +20,7 @@ import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from _fixtures import BASELINE_DIR, MODEL_DIR, prompt_cases
+from tests.fixtures import BASELINE_DIR, MODEL_DIR, prompt_cases
 
 from qwen3vl import GenerationConfig, Qwen3VLProcessor, generate, load_qwen3vl
 

@@ -6,7 +6,7 @@ import torch
 from PIL import Image
 from transformers import AutoProcessor, Qwen3VLForConditionalGeneration
 
-MODEL_DIR = Path(__file__).resolve().parent.parent / "models" / "Qwen3-VL-2B-Instruct"
+MODEL_DIR = Path(__file__).resolve().parents[1] / "models" / "Qwen3-VL-2B-Instruct"
 
 
 def main() -> None:

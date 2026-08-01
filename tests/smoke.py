@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from qwen3vl import GenerationConfig, Qwen3VLProcessor, generate, load_qwen3vl
 
-MODEL_DIR = Path(__file__).resolve().parent.parent / "models" / "Qwen3-VL-2B-Instruct"
+from tests.fixtures import MODEL_DIR
 
 
 def main() -> None:

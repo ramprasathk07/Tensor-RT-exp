@@ -12,9 +12,9 @@ every phase. Written for this machine and this repo.
 |---|---|---|
 | Weights | `models/Qwen3-VL-2B-Instruct/` | 4.27 GB safetensors, 625 tensors |
 | Standalone implementation | `qwen3vl/` | Pure torch, no `transformers` at runtime |
-| Logit parity vs HF 5.10.2 | `scripts/parity_check.py` | PASS — vision bit-exact, logits max_abs 4.5e-4, argmax 100% |
-| Generation parity | `scripts/parity_generate.py` | PASS — token-for-token on 3 prompt shapes |
-| Smoke test | `scripts/smoke_test.py` | 3.7 s warm load, correct output |
+| Logit parity vs HF 5.10.2 | `tests/test_hf_parity.py` | PASS — vision bit-exact, logits max_abs 4.5e-4, argmax 100% |
+| Generation parity | `tests/test_hf_generation.py` | PASS — token-for-token on 3 prompt shapes |
+| Smoke test | `tests/smoke.py` | 3.7 s warm load, correct output |
 
 The standalone implementation is the *reference oracle* for every later stage.
 Every engine build gets compared against it, not against feelings.
@@ -83,7 +83,7 @@ flash-attention kernel (Phase 3 of the kernel roadmap).
 Gate 0. Nothing below starts until every box here is checked.
 
 ### 4.1 Reference freeze
-- [ ] Re-run `scripts/parity_check.py` and `scripts/parity_generate.py`; record
+- [ ] Re-run `tests/test_hf_parity.py` and `tests/test_hf_generation.py`; record
       outputs into `docs/baselines/` as text files. These numbers are the
       contract every engine must meet.
 - [ ] Pin exact versions in a `docs/baselines/environment.txt`: torch, CUDA,

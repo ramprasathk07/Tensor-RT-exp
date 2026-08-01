@@ -1,0 +1,6 @@
+{
+  "precision": "fp16",
+  "trt_vs_torch_same_precision_worst_rel": 0.18392209708690643,
+  "torch_low_vs_fp32_worst_rel": 0.08767934143543243,
+  "verdict": "FAIL"
+}

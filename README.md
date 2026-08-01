@@ -10,10 +10,16 @@ way. A learning project in inference optimization and GPU kernels.
 
 | Path | Contents |
 |---|---|
-| `qwen3vl/` | Standalone Qwen3-VL implementation: config, modeling, weight loading, preprocessing, generation. See its [README](qwen3vl/README.md) for architecture notes (DeepStack, interleaved M-RoPE, patch ordering) |
-| `scripts/` | `download_qwen3vl.py` (fetch weights), `smoke_test.py`, `parity_check.py` (fp32 logits vs HF), `parity_generate.py` (greedy generation vs HF) |
-| `docs/` | [Experiment plan](docs/trt-split-experiment-plan.md) (TRT split, validation gates) and [kernel roadmap](docs/kernel-learning-roadmap.md) (K1–K9 learning track) |
-| `models/` | Weights, not committed — restore with the download script |
+| `qwen3vl/` | The model: config, modeling, weight loading, preprocessing, generation. See its [README](qwen3vl/README.md) for architecture notes (DeepStack, interleaved M-RoPE, patch ordering) |
+| `export/` | torch → ONNX |
+| `engine/` | ONNX → TensorRT engine, plus runtime, benchmark and profiler |
+| `tests/` | Everything that validates or measures: HF parity, engine parity, end-to-end token comparison |
+| `baselines/` | Freezes the fp32 reference oracle other runtimes are held to |
+| `tools/` | Weight download |
+| `docs/` | [Repo layout](docs/repo-layout.md), [experiment plan](docs/trt-split-experiment-plan.md), [kernel roadmap](docs/kernel-learning-roadmap.md), [Phase 1 results](docs/phase1-results.md) |
+| `models/`, `artifacts/` | Weights and built engines — gitignored, regenerate from `tools/` and `export/` |
+
+Full file-by-file breakdown and the order to run things: [docs/repo-layout.md](docs/repo-layout.md).
 
 ## Status
 
@@ -46,9 +52,9 @@ way. A learning project in inference optimization and GPU kernels.
 ## Setup
 
 ```bash
-python scripts/download_qwen3vl.py   # ~4.3 GB into models/Qwen3-VL-2B-Instruct
-python scripts/smoke_test.py         # load + generate on a test image
-python scripts/parity_check.py       # numerical parity vs transformers
+python tools/download_weights.py     # ~4.3 GB into models/Qwen3-VL-2B-Instruct
+python tests/smoke.py                # load + generate on a test image
+python tests/test_hf_parity.py       # numerical parity vs transformers
 ```
 
 Needs torch ≥ 2.12 with CUDA, `safetensors`, `tokenizers`, `pillow`, `jinja2`;

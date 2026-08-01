@@ -8,7 +8,7 @@ against torch.
 model than the bf16 pipeline the model normally ships as.**
 
 Environment: RTX 3060 12 GB (SM 8.6), TensorRT 11.2.1.2, torch 2.12.0+cu126,
-Windows. Reproduce with `scripts/phase1_export_onnx.py`,
+Windows. Reproduce with `export/vision_onnx.py`,
 `phase1_build_engine.py`, `phase1_end2end.py`.
 
 ---
@@ -125,7 +125,7 @@ side.
 
 ## 7. Carried into Phase 2
 
-- `make_trt_image_features` in `scripts/phase1_end2end.py` is already the
+- `make_trt_image_features` in `tests/test_end2end.py` is already the
   vision→decoder handoff Phase 2 needs: merged tokens plus the three DeepStack
   tensors, swapped in for `get_image_features` with the decoder untouched.
 - Use **fp16** for the vision engine, not bf16.
