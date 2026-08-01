@@ -20,10 +20,28 @@ way. A learning project in inference optimization and GPU kernels.
 - [x] Standalone implementation, parity-verified vs `transformers` 5.10.2:
   vision tower bit-exact, logits 100% argmax agreement (fp32, 2-image prompt),
   greedy generation token-for-token identical
-- [ ] Baselines frozen (Gate 0 of the experiment plan)
-- [ ] Vision encoder → TensorRT engine
+- [x] Baselines frozen — fp32 reference tensors, 3-D M-RoPE positions and
+  greedy generations captured as the oracle for every later runtime
+- [x] Vision encoder → TensorRT engine: **1.6–2.2× faster** than torch eager,
+  and closer to the fp32 model than the bf16 pipeline it replaces
+  ([results](docs/phase1-results.md))
 - [ ] Decoder → TensorRT-LLM (WSL2)
 - [ ] Custom kernels (Triton → CUDA → TileLang)
+
+### Findings so far
+
+- TensorRT 11 removed the FP16/BF16 builder flags — networks are strongly
+  typed, so precision must come from the exported ONNX. bf16 additionally needs
+  the `torch.export` path, which also produced a 44% smaller graph.
+- **bf16 is the wrong precision for this vision tower** despite being the
+  checkpoint dtype. Activations stay bounded, so bf16 spends mantissa on range
+  it never uses: 3.4× further from fp32 than fp16, and 25% slower.
+- Measure against fp32, not against the bf16 pipeline. Scored that way, TRT
+  fp16 reproduces fp32 output on 3/3 fixtures where bf16 manages 2/3.
+- 86% of engine time is GEMMs; TensorRT already fuses LayerNorm and residuals
+  into them. Custom-kernel headroom is in the decoder, not the vision tower.
+- `torch.compile` cannot be benchmarked on Windows (Triton has no Windows
+  wheels), so Triton kernel work belongs in WSL2.
 
 ## Setup
 
